@@ -1,0 +1,33 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Env / secrets
+.env
+.env.*
+*.local
+
+# Build outputs
+dist/
+build/
+.out/
+.next/
+.expo/
+
+# Frontend (Vite/React)
+frontend/dist/
+
+# Backend
+backend/dist/
+
+# Logs
+logs/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
