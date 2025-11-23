@@ -16,10 +16,10 @@ __pycache__/
 .idea/
 
 # Model weights, outputs, logs
-outputs/
-lora-gemma270m-*/
-*.pt
-*.bin
+# outputs/
+# lora-gemma270m-*/
+# *.pt
+# *.bin
 
 # Large data (optional — keep only small samples in git)
 data/*.csv
