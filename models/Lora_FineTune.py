@@ -14,13 +14,12 @@ from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 
 # ========= CONFIG =========
-MODEL_ID = "google/gemma-3-270m"
-
+MODEL_ID = "meta-llama/Llama-3.2-1B-Instruct"
 
 # 👉 EDIT THESE paths to match your data files
 DATA_FILES = [
-    "data/exercise_1.jsonl",   # Q/A in JSONL
-    "data/Nutrition_1.json",  # Q/A in JSON array or dict
+    "./../data/qa_pairs_h.json",   # Q/A in JSON
+    "./../data/qa_pairs.json",     # Q/A in JSON array or dict
 ]
 
 VAL_FRACTION = 0.1  # 10% for validation
@@ -120,15 +119,25 @@ def make_tokenizer():
 
 
 def make_model(device: str):
-    # bfloat16 on mps, float32 on cpu
-    dtype = torch.bfloat16 if device == "mps" else torch.float32
+    # 👇 dtype tuned for each device
+    if device == "cuda":
+        dtype = torch.float16          # 👈 CHANGED: use fp16 on GPU
+    elif device == "mps":
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float32
 
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
-        dtype=dtype,  # modern transformers prefers `dtype` over `torch_dtype`
+        torch_dtype=dtype,             # 👈 use torch_dtype kwarg
+        device_map="auto" if device == "cuda" else None
     )
-    # Trainer will move model to device, but this is harmless:
-    model.to(device)
+
+    # Optional but useful on GPU: gradient checkpointing for memory
+    if device in ("cuda", "mps"):
+        model.gradient_checkpointing_enable()
+
+    # Trainer will move model to device; no need to do model.to(device) here
     return model
 
 
@@ -158,15 +167,17 @@ def formatting_func(example):
 # ========= MAIN =========
 def main():
     # ----- Device -----
-    if torch.backends.mps.is_available():
-        device = "mps"
-    elif torch.cuda.is_available():
+    if torch.cuda.is_available():          # 👈 CHANGED: prefer CUDA first on Windows
         device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
     else:
         device = "cpu"
     print("Using device:", device)
+    if device == "cuda":
+        print("CUDA device:", torch.cuda.get_device_name(0))
 
-    # ----- Data -----  
+    # ----- Data -----
     dataset = make_dataset()
 
     # ----- Tokenizer & Model -----
@@ -188,7 +199,7 @@ def main():
 
     # ----- Training Config (SFTConfig, not TrainingArguments) -----
     sft_config = SFTConfig(
-        output_dir="lora-gemma270m-base",
+        output_dir="lora-gemma270m-adapter-2",
         do_train=True,
         do_eval=True,
 
@@ -211,10 +222,10 @@ def main():
         max_length=512,   # truncate long Q/A at 512 tokens
         packing=False,
 
-        # Device helpers
+        # Device helpers 👇
         use_mps_device=(device == "mps"),
-        fp16=False,
-        bf16=False,       # we already set dtype on model; leave these False
+        fp16=(device == "cuda"),        # 👈 CHANGED: enable fp16 on CUDA
+        bf16=False,                     # keep off on Windows unless you know you have BF16
         remove_unused_columns=False,
     )
 
@@ -233,7 +244,8 @@ def main():
     trainer.train()
 
     # ----- Save Adapter -----
-    save_dir = "lora-gemma270m-base-adapter"
+    save_dir = "./../outputs/lora-gemma270m-adapter-1"
+    os.makedirs(save_dir, exist_ok=True)
     trainer.model.save_pretrained(save_dir)
     tokenizer.save_pretrained(save_dir)
     print(f"✅ Saved LoRA adapter to {save_dir}")
