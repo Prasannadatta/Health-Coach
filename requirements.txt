@@ -1,0 +1,16 @@
+### 3️⃣ `requirements.txt` content (same as before, just confirming)
+
+Create `requirements.txt` in the root with:
+
+```txt
+torch
+transformers
+accelerate
+datasets
+trl
+peft
+pandas
+requests
+jupyter
+numpy
+tqdm

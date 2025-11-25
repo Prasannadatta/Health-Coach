@@ -1,0 +1,32 @@
+# Virtual env
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# VS Code / IDE stuff
+.vscode/
+.idea/
+
+# Model weights, outputs, logs
+# outputs/
+# lora-gemma270m-*/
+# *.pt
+# *.bin
+
+# Large data (optional — keep only small samples in git)
+data_nn/*.csv
+data_nn/*.parquet
+data_nn/*.jsonl
+data_nn/*.json
+!data_nn/sample_*.json
+
+
+/nutrition_recipe_processed.csv
